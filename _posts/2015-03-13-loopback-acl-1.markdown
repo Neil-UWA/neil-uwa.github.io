@@ -2,7 +2,7 @@
 layout: post
 title: "Loopback - ACL (1)"
 categories: jekyll update
-date: 2015-02-15 16:49:30
+date: 2015-03-13 16:49:30
 tags: loopback, acl
 ---
 
@@ -52,7 +52,12 @@ tags: loopback, acl
 
 ###Hide endpoints for related models
 
-当不同的 models 之间存在关系时，loopback 会自动两个表之间的关系生成路由，如果想把相应的路由也隐藏掉，那么也可以使用 `disableRemoteMethod()`。 相应的 `remote method` 名称可以查看[这里](http://docs.strongloop.com/display/public/LB/Restricting+access+to+related+models)。
+当不同的 models 之间存在关系时，loopback 会自动两个表之间的关系生成路由。例如， 一个 `User` 有多个 `Photo`,  那么，loopback 会为此关系自动生成如下路由：
+
+	POST: /users/:id/photos --> create
+	GET:  /users/:id/photos
+
+如果想把相应的路由也隐藏掉，那么也可以使用 `disableRemoteMethod()`。如果想把以上的 `create` 路由隐藏，那么只需调用：`User.disableRemoteMethod('__create_photos__', false)` 即可。 其他相应的 `remote method` 名称可以查看[这里](http://docs.strongloop.com/display/public/LB/Restricting+access+to+related+models)。
 
 ###Hide Model properties
 查看[这里](http://docs.strongloop.com/display/public/LB/Model+definition+JSON+file#ModeldefinitionJSONfile-Hiddenproperties)
