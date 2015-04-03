@@ -1,0 +1,92 @@
+---
+layout: post
+title: "在express/loopback中开启https服务"
+categories: jekyll update
+date: 2015-04-03 16:49:30
+---
+
+#开启https服务
+
+
+    var express = require('express');
+    var app = express();
+    app.listen(3000);
+
+由 `express` 所创建返回的 `app` 实际上是一个 Javascript 的普通方法，它意在处理 Node HTTP服务的请求， 作为 `http.Server.listen()` 中的一个回调函数。
+因此，如果想要开启 HTTPS 服务也是相当简单的， 我们只要使用 Node 自带的 `https` 模块。
+
+    var express = require('express');
+    var https = require('https');
+    var http = require('http');
+    var app = express();
+
+    http.createServer(app).listen(80);
+    https.createServer(options, app).listen(443);
+
+#CA (certificate authority)生成步骤
+
+1. 生成一`passphrase`，可以利用一些密码生成工具来生成， 这里我们使用 `pwgen`
+
+		pwgen 50 1 -s > passphrase
+
+2. 生成私钥
+
+		openssl genrsa -des3 -out ca.key 1024
+
+3. 证书签名请求, 需要用到上一步生成的 `ca.key` 文件。
+
+		openssl req -new -key ca.key -out ca.csr
+
+4.给证书签名
+
+	openssl x509 -req -days 365 -in ca.csr -out ca.crt -signkey ca.key
+
+# 生成服务证书(Server Certificate)
+
+1. 生成私钥
+
+		openssl genrsa -des3 -out server.key 1024
+
+2. 证书签名请求
+
+		 openssl req -new -key server.key -out server.csr
+
+3. 生成没有`passphrase`的私钥
+
+		cp server.key server.key.passphrase
+		openssl rsa -in server.key.passphrase -out server.key
+4. 给证书签名
+
+		openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
+
+#Loopback中启用https服务
+
+    app.start = function(httpOnly){
+      if(httpOnly === undefined) {
+        httpOnly = process.env.HTTP;
+      }
+      var server = null;
+      if(!httpOnly) {
+        var options = {
+          key: fs.readFileSync('./server.key'),
+          cert: fs.readFileSync('./server.crt')
+        };
+        server = https.createServer(options, app);
+      } else {
+        server = http.createServer(app);
+      }
+      server.listen(app.get('port'), function() {
+        var baseUrl = (httpOnly? 'http://' : 'https://') + app.get('host') + ':' + app.get('port');
+        app.emit('started', baseUrl);
+        console.log('LoopBack server listening @ %s%s', baseUrl, '/');
+      });
+      return server;
+    };
+
+#Reference
+
+express api doc: [http://expressjs.com/api.html](http://expressjs.com/api.html)
+
+generating self-signed certificate: [http://blog.matoski.com/articles/node-express-generate-ssl/](http://blog.matoski.com/articles/node-express-generate-ssl/)
+
+loopback-example-ssl: [https://github.com/strongloop/loopback-example-ssl](https://github.com/strongloop/loopback-example-ssl)
